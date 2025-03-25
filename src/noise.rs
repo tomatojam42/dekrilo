@@ -6,6 +6,51 @@ use image::Pixel;
 use rand_distr::{Exp, Normal, Distribution};
 use rand;
 
+struct Narg {
+    pixel: u8,
+    exp_rand: f32,
+    std_dev: f32,
+    exp_mult: f32,
+}
+
+impl Default for Narg {
+    fn default() -> Self {
+        Narg {
+            pixel:0,
+            exp_rand: 1.0,
+            std_dev: 30.0,
+            exp_mult: 2.0
+        }
+    }
+}
+
+fn loop_until_u8<F: Fn(&Narg)->f32>(nar: &Narg, f: F) -> u8 {
+    loop {
+        match f(&nar).round() as i32 {
+            n @ 0..=255 => break n as u8,
+            _ => ()
+        }
+    }
+}
+
+fn normal1(nar: &Narg) -> f32 {
+    Normal::new(
+        nar.pixel as f32 + nar.exp_mult * nar.exp_rand,
+        nar.std_dev
+    )
+    .unwrap()
+    .sample(&mut rand::thread_rng())
+}
+
+fn normal2 (nar: &Narg) -> f32 {
+    Normal::new(
+        nar.pixel as f32,
+        nar.std_dev
+    )
+    .unwrap()
+    .sample(&mut rand::thread_rng())
+}
+
 pub fn noise(file: &PathBuf) -> Result<(),()> {
     let mut img = match image::open(file){
         Ok(img) => img.into_rgb8(),
@@ -13,39 +58,19 @@ pub fn noise(file: &PathBuf) -> Result<(),()> {
     };
     let mut rand_thr = rand::thread_rng();
     let mut exp1 = Exp::new(1.0).unwrap().sample_iter(&mut rand_thr);
+    
     for (_x, _y, pixel) in img.enumerate_pixels_mut() {
+        let mut nar = Narg {
+            exp_rand: exp1.next().unwrap(),
+            ..Narg::default()};
         let ch = pixel.channels();
-        let r = loop {
-            match Normal::new(
-                ch[0] as f32 + 2.0*exp1.next().unwrap(),
-                30.0)
-            .unwrap()
-            .sample(&mut rand::thread_rng())
-            .round() as i32 {
-                n if (0..255).contains(&n) => break n as u8,
-                _ => ()
-            }
-        };
-        let g = loop {
-            match Normal::new( ch[1] as f32, 30.0 )
-            .unwrap()
-            .sample(&mut rand::thread_rng())
-            .round() as i32 {
-                n if (0..255).contains(&n) => break n as u8,
-                _ => ()
-            }
-        };
-        let b = loop {
-            match Normal::new(
-                ch[2] as f32 + 2.0*exp1.next().unwrap(),
-                30.0)
-            .unwrap()
-            .sample(&mut rand::thread_rng())
-            .round() as i32 {
-                n if (0..255).contains(&n) => break n as u8,
-                _ => ()
-            }
-        };
+        nar.pixel = ch[0];
+        let r: u8 = loop_until_u8(&nar, normal1);
+        nar.pixel = ch[1];
+        let g = loop_until_u8(&nar, normal2);
+        nar.pixel = ch[2];
+        nar.exp_rand = exp1.next().unwrap();
+        let b = loop_until_u8(&nar, normal1);
         *pixel = image::Rgb([r, g, b]);
     }
     match img.save_with_format("test.png", image::ImageFormat::Png) {
