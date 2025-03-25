@@ -1,0 +1,26 @@
+[package]
+name = "dekrilo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+peg = ">=0.8.4"
+image = ">=0.25.5"
+rand = "*"
+rand_distr = ">=0.4.3"
+
+[dependencies.clap]
+version = ">=4.5.32"
+features = [ "derive" ]
+
+[profile.release]
+opt-level = "z"
+codegen-units = 1
+strip = true
+# lto = true
+
+[features]
+default = ["noise", "timecalc", "diff"]
+noise = []
+timecalc = []
+diff = []
