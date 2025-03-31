@@ -298,6 +298,7 @@ dependencies = [
  "peg",
  "rand",
  "rand_distr",
+ "rayon",
 ]
 
 [[package]]

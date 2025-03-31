@@ -5,9 +5,13 @@ edition = "2021"
 
 [dependencies]
 peg = ">=0.8.4"
-image = ">=0.25.5"
 rand = "*"
 rand_distr = ">=0.4.3"
+rayon = "*"
+
+[dependencies.image]
+version = ">=0.25.5"
+features = ["rayon"]
 
 [dependencies.clap]
 version = ">=4.5.32"
