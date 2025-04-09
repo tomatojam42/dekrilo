@@ -1,6 +1,12 @@
 use peg;
 use std::time::Duration;
-use std::io::{stdin, stdout, Write};
+use crate::{cli, DError};
+
+#[derive(PartialEq,Debug)]
+enum TimecalcExpression {
+    Dur(Duration),
+    Exit
+}
 
 peg::parser!{
     grammar parser() for str {
@@ -29,53 +35,61 @@ peg::parser!{
         = only_hours() / only_minutes() / only_seconds()
 
         pub rule whitespace() = quiet!{[' ' | '\t']+}
-        pub rule parse() -> Duration
+
+        pub rule parse_duration() -> TimecalcExpression
         = whitespace()? a:time_val() whitespace()? b:$(['+'|'-']) whitespace()? c:time_val() {
+            TimecalcExpression::Dur(
             match b {
                 "+" => a + c,
                 "-" => a - c,
                 &_ => todo!()
-        } }
-    }
-}
+            })
+        }
 
-pub fn get_input(prompt: &str) -> String{
-    let _ = stdout().write(format!("{}",prompt).as_bytes());
-    let _ = stdout().flush();
-    let mut input = String::new();
-    match stdin().read_line(&mut input) {
-        Ok(_) => {},
-        Err(_) => {},
+        rule exit() -> TimecalcExpression
+        = whitespace()? $("q" / "quit" / "e" / "exit") whitespace()? {TimecalcExpression::Exit}
+
+        pub rule parse() -> TimecalcExpression
+        = t:exit() / t:parse_duration() {TimecalcExpression::Exit}
     }
-    input.trim().to_string()
 }
 
 #[test]
 fn test1() {
-    assert_eq!(parser::parse("36:40:13 - ::13"), Ok(Duration::from_secs(36*3600 + 40 * 60)));
+    assert_eq!(
+        parser::parse("36:40:13 - ::13"),
+        Ok(
+            TimecalcExpression::Dur(
+                Duration::from_secs(36*3600 + 40 * 60)
+            )
+        )
+    );
 }
 
-pub fn timecalc() -> Result<(),()> {
+pub fn timecalc() -> Result<(),DError> {
     loop {
-        let a = get_input(">>> ");
-        let b = parser::parse(&a);
-        if let Ok(c) = b {
-            let mut k = c.as_secs();
-            let days = match k/86400 {
-                0 => "",
-                n => { k %= 86400;
-                    &format!("{n} d")}
-            };
-            let hours = match k/3600 {
-                0 => "",
-                n => {k %= 3600; &format!("{n} h")}
-            };
-            let mins = match k/60 {
-                0 => "",
-                n => {k %= 60;&format!("{n} m")}
-            };
-            let secs = if k>0 {&format!("{k} s")} else {""};
-            println!("{} {} {} {}", days, hours, mins, secs);
+        let a = cli::get_input(">>> ");
+        let b = parser::parse(&a).map_err(|_|DError::CantParse)?;
+        match b {
+            TimecalcExpression::Dur(c) => {
+                let mut k = c.as_secs();
+                let days = match k/86400 {
+                    0 => "",
+                    n => { k %= 86400;
+                        &format!("{n} d")}
+                };
+                let hours = match k/3600 {
+                    0 => "",
+                    n => {k %= 3600; &format!("{n} h")}
+                };
+                let mins = match k/60 {
+                    0 => "",
+                    n => {k %= 60;&format!("{n} m")}
+                };
+                let secs = if k>0 {&format!("{k} s")} else {""};
+                println!("{} {} {} {}", days, hours, mins, secs);
+            },
+            TimecalcExpression::Exit => break
         }
     }
     Ok(())
