@@ -51,13 +51,12 @@ fn diff_func_style(file1: &[u8], file2: &[u8]) -> Vec<(usize,usize)> {
     let mut ranges: Vec<(usize,usize)> = vec![];
     let mut bool_enumed  = file1.iter()
         .zip(file2.iter())
-        .map(|(l,r)| l!=r)
         .enumerate();
-    while let Some((start,_)) = bool_enumed.find(|&(_n, is_diff)| is_diff) {
+    while let Some((start,_)) = bool_enumed.find(|&(_n, (l,r))| l!=r) {
         if let Some((stop,_)) = bool_enumed.by_ref()
-        .find(|&(_n, is_diff)| ! is_diff) {
-            ranges.push((start,stop-1))
-        };
+            .find(|&(_n, (l,r) )| l==r ) {
+                ranges.push((start,stop-1))
+            };
     }
     ranges
 }
