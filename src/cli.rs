@@ -72,7 +72,7 @@ enum Commands {
 
     /// Calculate time
     #[cfg(feature = "timecalc")]
-    Timacalc,
+    Timecalc,
 
     /// Show where files differ as offset ranges
     #[cfg(feature = "diff")]
@@ -88,7 +88,7 @@ pub fn parse() -> Result<(), DError> {
     let args = Cli::parse();
     match &args.command {
         Commands::Noise { file } => noise(file),
-        Commands::Timacalc => timecalc(),
+        Commands::Timecalc => timecalc(),
         Commands::Diff { file1, file2, func } => {
             let d = diff::DiffArgs {
                 file1,

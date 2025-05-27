@@ -50,7 +50,7 @@ peg::parser!{
         = whitespace()? $("q" / "quit" / "e" / "exit") whitespace()? {TimecalcExpression::Exit}
 
         pub rule parse() -> TimecalcExpression
-        = t:exit() / t:parse_duration() {TimecalcExpression::Exit}
+        = t:exit() / t:parse_duration() {t}
     }
 }
 
